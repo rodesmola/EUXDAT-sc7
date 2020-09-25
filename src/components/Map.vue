@@ -43,7 +43,7 @@
         <v-flex id="map" style="max-height: 100vh; height: 100vh; padding: 0px; margin: 0px;">
 
           <!------------ Service form start ------------>
-          <div class="flex xs12 sm5 md4 lg3 xl2" style="position: absolute; z-index: 10; top:80px; left: 10px; background-color: #27304c;">
+          <div class="flex xs12 sm5 md5 lg4 xl3" style="position: absolute; z-index: 10; top:80px; left: 10px; background-color: #27304c;">
             <v-toolbar class="green" tabs  height="42px">
               <v-toolbar-title>
                 <img style="width: 30px;" src="../assets/logo_1-1.png" alt="">
