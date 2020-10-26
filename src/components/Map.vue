@@ -41,7 +41,7 @@
 
 
         <v-flex id="map" style="max-height: 100vh; height: 100vh; padding: 0px; margin: 0px;">
-
+          <div id="mapsight"></div>
           <!------------ Service form start ------------>
           <div class="flex xs12 sm5 md5 lg4 xl3" style="position: absolute; z-index: 10; top:80px; left: 10px; background-color: #27304c;">
             <v-toolbar class="green" tabs  height="42px">
@@ -86,9 +86,9 @@
           <!------------/Service form------------>
 
           <!------------ Zoom controls and layer manager start ------------>
-          <div class="flex xs12 sm4 md3 lg2" style="position: absolute; z-index: 10; top:80px; right: 10px;">
+          <div class="flex xs12 sm4 md3 lg2" style="position: absolute; z-index: 10; top:80px; right: 10px; ">
             <v-layout row wrap>
-              <v-flex xs12 pl-2 row>
+              <v-flex xs12 pl-2 row class="text-xs-right">
 
                 <v-btn-toggle multiple>
                   <v-btn flat class="v-btn--active" title="Zoom in" @click="zoomMap(map, 'in')" style="background-color: #47a34b; color: white;">
@@ -100,13 +100,52 @@
                 </v-btn-toggle>
 
                 <div class="" style="background-color: white; padding-left: 10px; padding-right: 10px;">
-                  <v-radio-group v-model="selectedBaseLayer" :mandatory="false" v-on:change="setLayerVisibility()" style="padding-top: 14px;">
+                  <v-radio-group hide-details hide-no-data hide-selected  v-model="selectedBaseLayer" :mandatory="false" v-on:change="setLayerVisibility(map)" style="padding-top: 14px;">
                     <v-radio color="#47a34b" label="Open Street Map" value="osm"></v-radio>
                     <v-radio color="#47a34b" label="Aerial" value="aerial" ></v-radio>
                   </v-radio-group>
                 </div>
 
+                <v-flex xs12 style="background-color: white;">
+                  <v-divider class="pl-2 pr-2"></v-divider>
+                </v-flex> 
+
+                <v-flex xs12  row style="background-color: white;">
+
+                  <v-form ref="mapCoordsForm" v-model="mapCoordsValid">                
+                    <v-layout row wrap>
+          
+                      <v-flex xs6 class="pl-2 pr-2">
+                        <v-btn dark small block color="#27304c" @click="centerMap(true)" title="Center map on initial position.">
+                          <v-icon dark>home</v-icon>
+                        </v-btn>
+                      </v-flex>
+                      <v-flex xs6 class="pl-2 pr-2">
+                        <v-btn dark small block style="background-color: #47a34b; color: white;" @click="centerMap(false)" title="Center map on coordinates above.">
+                          <v-icon dark>my_location</v-icon>
+                        </v-btn>
+                      </v-flex>  
+
+                      <v-flex xs6 class="pl-2 pr-2">
+                        <v-text-field hide-no-data hide-selected dense color="#77b942" type="text" v-model="mapCoords.lat" :value="mapCoords.lat"
+                          label="Latitude" @input="$v.mapCoords.lat.$touch()" @blur="$v.mapCoords.lat.$touch()"
+                          :error-messages="latErrors">
+                        </v-text-field>
+                      </v-flex>
+                      <v-flex xs6 class="pl-2 pr-2">
+                        <v-text-field hide-no-data hide-selected dense color="#77b942" type="text" v-model="mapCoords.long" :value="mapCoords.long"
+                          label="Longitude" @input="$v.mapCoords.long.$touch()" @blur="$v.mapCoords.long.$touch()"
+                          :error-messages="longErrors">
+                        </v-text-field>
+                      </v-flex>
+
+                    </v-layout>
+                  </v-form>
+
+                </v-flex>     
+
               </v-flex>
+              
             </v-layout>
           </div>
           <!------------ Zoom controls and layer manager end ------------>
@@ -135,7 +174,7 @@ import {Tile as TileLayer} from 'ol/layer.js';
 import moment from 'moment';
 import OSM from 'ol/source/OSM';
 import BingMaps from 'ol/source/BingMaps.js';
-
+import {required, decimal, between} from 'vuelidate/lib/validators'
 import StartDialog from '@/components/StartDialog.vue'
 import CropWeather from '@/components/CropWeather.vue'
 import PredictFlowering from '@/components/PredictFlowering.vue'
@@ -149,6 +188,7 @@ export default {
   },
   data: () => ({
     startDialog: true,
+    mapCoordsValid: false,
     selectedBaseLayer: 'aerial',
     panels: [
       {"name": "Crop weather risk monitoring and prediction"},
@@ -159,6 +199,10 @@ export default {
     alertType: "error",
     componetCWkey: 0,
     componetPFkey: 0,
+    mapCoords: {
+      lat: 0,
+      long: 0,
+    },
   }),
   methods: {
     /**
@@ -217,6 +261,14 @@ export default {
       
       this.map = myMap;
       this.$store.state.map = myMap;
+      
+      var self = this;
+      myMap.on('moveend', function () {  
+        var center = myMap.getView().getCenter(); 
+        self.mapCoords.lat = center[1].toString().substring(0, 6)
+        self.mapCoords.long = center[0].toString().substring(0, 6)   
+        self.$store.state.mapCoords = self.mapCoords;
+      });      
     },//initMap
     /**
     * zoom map controls
@@ -249,6 +301,21 @@ export default {
         self.getLayerFromMapByName('osm').setVisible(false);
       }
     },//setLayerVisibility
+    centerMap(isHome){
+
+      if(!this.$v.$invalid){
+        if(isHome){
+          this.mapCoords.long = 12.141
+          this.mapCoords.lat = 48.512
+        }
+        this.map.getView().animate({
+          center: [this.mapCoords.long, this.mapCoords.lat],
+          duration: 1000,
+        });
+      }else{
+        this.showAlert("error", "Please insert correct coordinates");
+      }
+    },    
       /**
     * Get the map layer by name and return it as a OL layer object
     *
@@ -311,6 +378,30 @@ export default {
     // });
 
   },
+  validations: {
+    mapCoords: {
+      lat: {required, decimal, between: between(-90, 90)},
+      long: {required, decimal, between: between(-180, 180)},
+    }
+  },
+  computed: {
+    latErrors () {
+      const errors = []
+      if (!this.$v.mapCoords.lat.$dirty) return errors
+      !this.$v.mapCoords.lat.required && errors.push('Required field.')
+      !this.$v.mapCoords.lat.between && errors.push('Values from -90 to 90')
+      !this.$v.mapCoords.lat.decimal && errors.push('Insert a number')
+      return errors
+    },
+    longErrors () {
+      const errors = []
+      if (!this.$v.mapCoords.long.$dirty) return errors
+      !this.$v.mapCoords.long.required && errors.push('Required field.')
+      !this.$v.mapCoords.long.between && errors.push('Values from -180 to 180')
+      !this.$v.mapCoords.long.decimal && errors.push('Insert a number')
+      return errors
+    },
+  },  
   filters: {
     truncate: function(value) {
       if(value != undefined){
@@ -341,5 +432,17 @@ export default {
   font-family: Roboto,sans-serif !important; 
   font-weight: 500; line-height: 1 !important; 	
   letter-spacing: .02em !important;
+}
+
+#mapsight {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 51px;
+	height: 51px;
+	margin: -26px;
+	pointer-events: none;
+	z-index: 100;
+	background: url("../assets/epsg-target-large.png") 0 0 no-repeat;
 }
 </style>
