@@ -68,7 +68,7 @@
               </v-text-field> 
             </v-flex>
 
-            <v-flex sm9 xs6 md6 lg4 xlg4 class="pl-3 pr-3">
+            <v-flex sm9 xs6 md6 lg6 xlg6 class="pl-3 pr-3">
               <v-combobox hide-no-data hide-selected dense
               v-model="pf_model.crop_name"
               :items="cropNameArr"
@@ -79,7 +79,7 @@
               ></v-combobox>
             </v-flex>
 
-            <v-flex sm9 xs6 md6 lg4 xlg4 class="pl-3 pr-3">
+            <v-flex sm9 xs6 md6 lg6 xlg6 class="pl-3 pr-3">
               <v-combobox hide-no-data hide-selected dense
               v-model="pf_model.w_domain"
               :items="wDomainArr"
@@ -251,10 +251,11 @@ export default {
         };
 
         var payload = {
-          "longitude": this.$store.state.mapCoords.long,
-          "latitude": this.$store.state.mapCoords.lat,
+          "longitude": parseInt(this.$store.state.mapCoords.long),
+          "latitude": parseInt(this.$store.state.mapCoords.lat),
           "planting_date": this.pf_model.planting_date,
           "stem_elong_date": this.pf_model.stem_elong_date,
+          "leafing_date": this.pf_model.leafing_date,
           "crop_name": this.pf_model.crop_name,
           "t_base": parseInt(this.pf_model.t_base),
           "t_max": parseInt(this.pf_model.t_max),
